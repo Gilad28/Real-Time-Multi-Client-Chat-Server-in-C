@@ -18,6 +18,7 @@ int createTCPIPv4Socket(void) {
 
 int main()
 {
+    // Test comment for test commit
     int serverFD = createTCPIPv4Socket();
 
     struct sockaddr_in *address = createIPv4Address("0.0.0.0", 2000);
