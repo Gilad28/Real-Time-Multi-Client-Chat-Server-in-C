@@ -19,6 +19,9 @@ const app = express();
 const __dirname = path.resolve();
 const PORT = process.env.PORT;
 
+// This command allows input from the users in the req.body
+app.use(express.json())
+
 app.use("/api/auth", authRoutes);
 app.use("/api/message", messageRoutes);
 
