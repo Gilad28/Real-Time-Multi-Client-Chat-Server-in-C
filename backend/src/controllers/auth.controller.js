@@ -157,7 +157,7 @@ export const updateProfile = async (req, res) => {
             userId, 
             {profilePicture: response.secure_url}, 
             {new: true}
-        );
+        ).select("-password"); // dont send the password, it's supposed to be SECRET
 
         res.status(200).json(updatedUser);
     } catch (error) {
