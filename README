@@ -42,4 +42,5 @@ Backend:
     /src/lib/cloudinary.js
     /src/models/Groups.js
     /src/models/Message.js
+    /src/controllers/message.controller.js
 Frontend:
