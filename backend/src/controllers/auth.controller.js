@@ -43,8 +43,8 @@ export const signup = async (req, res) => {
         });
 
         if (newUser) {
+            const saveUser = await newUser.save();
             generateToken(newUser._id, res);
-            await newUser.save();
 
             res.status(201).json({
                 _id:newUser._id,
@@ -52,6 +52,8 @@ export const signup = async (req, res) => {
                 email:newUser.email,
                 profilePic:newUser.profilePicture,
             });
+
+            // TODO: send confirmation email
         }
         else {
             // return error code 400 for bad request and send error message to user
