@@ -3,6 +3,7 @@ import { sendWeclomeEmail } from "../emails/emailHandlers.js";
 import { generateToken } from "../lib/utils.js";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs"
+import cloudinary from "../lib/cloudinary.js";
 
 /*
 this controller is used when an account is trying to signup using the form below as raw json
@@ -141,4 +142,25 @@ export const logout = async (req, res) => {
     };
     res.clearCookie("jwt", cookieOptions);
     return res.status(200).json({ message: "Logged Out Successfully." });
+};
+
+export const updateProfile = async (req, res) => {
+    try {
+        const { profilePicture } = req.body;
+        if (!profilePicture) {
+            return res.status(400).json({ message: "No profile picture provided."})
+        }
+
+        const userId = req.user._id;
+        const response = await cloudinary.uploader.upload(profilePicture);
+        const updatedUser = await User.findByIdAndUpdate(
+            userId, 
+            {profilePicture: response.secure_url}, 
+            {new: true}
+        );
+
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        res.status(500).json({ message: "Internal Error."})
+    }
 };

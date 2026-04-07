@@ -3,6 +3,7 @@
 This project uses react, node.js, mongoDB, and Socket.io.
 This also used Postman app to send dummy single via the program to store data on MongoDB
 This also uses resend.com free plan to send emails. Because I do not wish to purchase a domain this will be used for testing purposes only and can only send emails to my email "michaelhullzero@gmail.com"
+profile images stored in mongoDB will be gotten from Cloudinary.
 
 The program also runs locally using a cloudflare Tunnel instead of port forwarding
 
@@ -34,4 +35,6 @@ Backend:
     /src/emails/emailHandlers.js
     /src/emails/emailTemplate.js
     /src/lib/resend.js
+    /src/lib/env.js
+    /src/lib/cloudinary.js
 Frontend:

@@ -14,13 +14,18 @@ import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
 // import connectDB from the db.js file
 import { connectDB } from "./lib/db.js"
+// imports the cookie parser package
+import cookieParser from "cookie-parser"
 
 const app = express();
 const __dirname = path.resolve();
 const PORT = process.env.PORT;
 
+// Middleware
 // This command allows input from the users in the req.body
 app.use(express.json())
+// Run the cookie parser package installed in the backend only
+app.use(cookieParser())
 
 app.use("/api/auth", authRoutes);
 app.use("/api/message", messageRoutes);
