@@ -1,3 +1,5 @@
+import "dotenv/config";
+import { sendWeclomeEmail } from "../emails/emailHandlers.js";
 import { generateToken } from "../lib/utils.js";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs"
@@ -43,7 +45,7 @@ export const signup = async (req, res) => {
         });
 
         if (newUser) {
-            const saveUser = await newUser.save();
+            const savedUser = await newUser.save();
             generateToken(newUser._id, res);
 
             res.status(201).json({
@@ -53,7 +55,12 @@ export const signup = async (req, res) => {
                 profilePic:newUser.profilePicture,
             });
 
-            // TODO: send confirmation email
+            // sends welcome email
+            try {
+                await sendWeclomeEmail(savedUser.email, savedUser.username, process.env.CLIENT_URL);
+            } catch (error) {
+                console.error("Could not send welcome email: ", error);
+            }
         }
         else {
             // return error code 400 for bad request and send error message to user
