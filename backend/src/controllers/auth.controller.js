@@ -93,6 +93,10 @@ this controller is used when an account is trying to login using the form below 
 export const login = async (req, res) => {
     const {email, password} = req.body
 
+    if (!email || !password) {
+        return res.status(400).json({ message: "Email and Password are both required for login."})
+    }
+
     try {
         const user = await User.findOne({email});
 
@@ -129,6 +133,12 @@ This controller requires no input or "req" and simply removes the cookie from th
 */
 export const logout = async (req, res) => {
     // remove cookie jwt from user on log out
-    res.cookie("jwt","",{maxAge: 0});
-    res.status(200).json({ message: "Logged Out Successfully!" });
+    const cookieOptions = {
+        httpOnly: true,
+        sameSite: "strict",
+        secure: process.env.NODE_ENV !== "development",
+        path: "/", // used to match the path used when initially setting the cookie
+    };
+    res.clearCookie("jwt", cookieOptions);
+    return res.status(200).json({ message: "Logged Out Successfully." });
 };
