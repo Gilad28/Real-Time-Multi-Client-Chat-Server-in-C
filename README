@@ -1,17 +1,17 @@
+# Multi Chat Client
+
 This project uses react, node.js, mongoDB, and Socket.io.
 This also used Postman app to send dummy single via the program to store data on MongoDB
+This also uses resend.com free plan to send emails. Because I do not wish to purchase a domain this will be used for testing purposes only
 
 The program also runs locally using a cloudflare Tunnel instead of port forwarding
 
 To run the project open a command prompt terminal and run the command:
 
 npm run start
-ju
+
 if there are no node_modules files in the frontend or backend, or also not a dist file in the frontend run the command:
 
-npm run build
-
-cd frontend
 npm run build
 
 the.gitignore does not upload the .env variables
