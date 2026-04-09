@@ -14,6 +14,10 @@ function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  const [isSigningUp, setIsSigningUp] = useState(false);
+  const [username, setUsername] = useState('');
+
+
   useEffect(() => {
     if(inChat) {
       fetch('/api/message/conversations', {
@@ -38,12 +42,18 @@ function App() {
   async function handleJoin(e) {
     e.preventDefault()
 
+    const endpoint = isSigningUp ? '/api/auth/signup' : '/api/auth/login';
+
+    const bodyData = isSigningUp ? { username, email, password } : { email, password };
+
+
+
     try 
     {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+      const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bodyData)
       });
 
     const data = await response.json()
@@ -65,6 +75,11 @@ function App() {
   async function handleSend(e) {
     e.preventDefault()
 
+    if(!activeId){
+      console.error("No conversation selected");
+       return;
+    }
+
     const response = await fetch(`/api/message/${activeId}/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -82,8 +97,19 @@ function App() {
   if (!inChat) {
     return (
       <div className="join-screen">
-        <h1>Chat Room</h1>
+        <h1>{isSigningUp ? 'Sign Up' : 'Login'}</h1>
         <form onSubmit={handleJoin}>
+          {isSigningUp && (
+            <input
+            type = "text"
+            placeholder = "Enter username"
+            value = {username}
+            onChange = {(e) => setUsername(e.target.value)}
+            required
+          />
+        )}
+
+
           <input
           type = "email"
           placeholder = "Enter email"
@@ -98,9 +124,16 @@ function App() {
           onChange = {(e) => setPassword(e.target.value)}
           required
           />
-          <button type="submit">Join</button>
+          <button type="submit">{isSigningUp ? 'Sign Up' : 'Login'}</button>
         </form>
-      </div>
+
+        <p
+          onClick={() => setIsSigningUp(!isSigningUp)}
+          style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
+          >
+            {isSigningUp ? 'Login' : 'Sign Up'}
+          </p>
+        </div>
     )
   }
 
