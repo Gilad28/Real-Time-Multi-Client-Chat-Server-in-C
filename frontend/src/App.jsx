@@ -1,34 +1,148 @@
-import { BrowserRouter } from "react-router-dom";
-import { Routes } from "react-router-dom";
-import { Route } from "react-router-dom";
-import { Navigate } from "react-router-dom";
-
-const Homepage = () => <div><h1>MultiChat Client</h1><p>Main chat TODO</p></div>
-const Login = () => <div><h1>Login</h1></div>
-const Signup = () => <div><h1>Signup</h1></div>
+import { useState, useEffect } from 'react'
+import './App.css'
 
 function App() {
-  const isUserAuthenticated = false;
+  const [name, setName] = useState('')
+  const [inChat, setInChat] = useState(false)
+  
+  const [text, setText] = useState('')
+  const [messages, setMessages] = useState([])
+
+  const [conversations, setConversations] = useState([]);
+  const [activeId, setActiveId] = useState(null);
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    if(inChat) {
+      fetch('/api/message/conversations', {
+        credentials: 'include'
+      })
+      .then(response => response.json())
+      .then(data => setConversations(data))
+      .catch(error => console.error('Error fetching conversations:', error))
+    }
+  }, [inChat])
+
+  useEffect(() => {
+    if (activeId) {
+      fetch(`/api/message/${activeId}/messages`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => setMessages(data));
+    }
+  }, [activeId]);
+
+  // join the chatroom
+  // mioght need to change on the backend
+  async function handleJoin(e) {
+    e.preventDefault()
+
+    try 
+    {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+    const data = await response.json()
+
+    if (response.ok) {
+      setInChat(true);
+      setName(data.username || data.email);
+    } else {
+      console.error('Login failed:', data.message);
+      alert(data.message);
+    }
+  } 
+  catch (error) {
+    console.error("Network error or server is down:", error);
+  }
+};
+
+  // send a message to the chatroom, again backend might need to play a role here.
+  async function handleSend(e) {
+    e.preventDefault()
+
+    const response = await fetch(`/api/message/${activeId}/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ text })
+    })
+
+    if (response.ok) {
+      const message = await response.json()
+      setMessages([...messages, message])
+      setText('')
+    }
+  }
+
+  if (!inChat) {
+    return (
+      <div className="join-screen">
+        <h1>Chat Room</h1>
+        <form onSubmit={handleJoin}>
+          <input
+          type = "email"
+          placeholder = "Enter email"
+          value = {email}
+          onChange = {(e) => setEmail(e.target.value)}
+          required
+          />
+          <input
+          type = "password"
+          placeholder = "Enter password"
+          value = {password}
+          onChange = {(e) => setPassword(e.target.value)}
+          required
+          />
+          <button type="submit">Join</button>
+        </form>
+      </div>
+    )
+  }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/"
-          element={isUserAuthenticated ? <Home /> : <Navigate to="/login"/>}
-        />
+    <div className="chat-room">
 
-        {/* After this comment assume user is Authenticated */}
-        <Route 
-          path="/login"
-          element={<Login/>}
+      <h2>Welcome, {name}</h2>
+      <div className="sidebar">
+        {conversations.map(conv => (
+          <button key={conv._id} onClick={() => setActiveId(conv._id)}>
+            {conv.groupName || "Direct Message"}
+          </button>
+        ))}
+      </div>
+      <div className="messages">
+        {!activeId ? (
+          <div className="no-chat">Select a conversation to start chatting</div>
+        ) : messages.length === 0 ? (
+          <div className="no-chat">No messages yet</div>
+        ) : (
+          messages.map((msg, index) => (
+            <div key={index} className="message">
+              <strong>{msg.senderId?.username || "Unknown"}: </strong>
+              {msg.text}
+            </div>
+          ))
+        )}
+      </div>
+
+      <form onSubmit={handleSend}>
+
+        <input
+          type="text"
+          placeholder="Type message"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
         />
-        <Route 
-          path="/signup"
-          element={<Signup/>}
-        />
-      </Routes>
-    </BrowserRouter>
-  );
+        
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  )
 }
+
 export default App
