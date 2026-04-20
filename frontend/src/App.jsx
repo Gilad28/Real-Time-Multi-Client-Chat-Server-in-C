@@ -17,6 +17,7 @@ function App() {
 
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [username, setUsername] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
   const socketRef = useRef(null);
 
   const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
@@ -64,10 +65,36 @@ function App() {
       });
     };
 
+    // set messages to current messages minus the deleted message
+    const handleMessageDeleted = ({ conversationId, messageId }) => {
+      if (!conversationId || !messageId) return;
+      if (String(conversationId) !== String(activeId)) return;
+
+      setMessages((prev) => prev.filter((msg) => String(msg._id) !== String(messageId)));
+    };
+
+    // remove the deleted convo.
+    const handleConversationDeleted = ({ conversationId }) => {
+      if (!conversationId) return;
+
+      setConversations((prev) => prev.filter((conv) => String(conv._id) !== String(conversationId)));
+
+      if (String(activeId) === String(conversationId)) {
+        setActiveId(null);
+        setMessages([]);
+      }
+    };
+
     socket.on('new-message', handleIncomingMessage);
+    // tell the socket to listern for the deleted message
+    socket.on('message-deleted', handleMessageDeleted);
+    // same here but with convo.
+    socket.on('conversation-deleted', handleConversationDeleted);
 
     return () => {
       socket.off('new-message', handleIncomingMessage);
+      socket.off('message-deleted', handleMessageDeleted);
+      socket.off('conversation-deleted', handleConversationDeleted);
     };
   }, [activeId, inChat]);
 
@@ -203,6 +230,7 @@ async function renameChat()
     if (response.ok) {
       setInChat(true);
       setName(data.username || data.email);
+      setCurrentUser(data);
     } else {
       console.error('Login failed:', data.message);
       alert(data.message);
@@ -240,11 +268,97 @@ async function renameChat()
     }
   }
 
+
+  // delete a group chat
+  async function handleDeleteGroupChat() {
+    if (!activeId || activeConversation?.isPublicRoom) return;
+
+    const isGroup = !!activeConversation?.isGroupChat;
+    const confirmed = window.confirm(
+      isGroup
+        ? 'Do you want to delete this groupchat?'
+        : 'Do you want to delete this dm?'
+    );
+    if (!confirmed) return;
+
+    // send delete request to backend
+    try {
+      const response = await fetch(`/api/message/${activeId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      // set active chat to null and delete convo.
+      if (response.ok) {
+        setConversations((prev) => prev.filter((conv) => conv._id !== activeId));
+        setActiveId(null);
+        setMessages([]);
+      } else {
+        console.error('Error deleting chat:', error);
+      }
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+    }
+  }
+
+
+  // deletes a single message in a chat from you.
+  async function handleDeleteMessage(messageId) {
+    if (!activeId || !messageId) return;
+
+
+    // send delete request to backend
+    try {
+      const response = await fetch(`/api/message/${activeId}/messages/${messageId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      // if successful delete message from current chat window
+      if (response.ok) {
+        setMessages((prev) => prev.filter((msg) => String(msg._id) !== String(messageId)));
+      } else {
+        console.error('Error deleting message:', data.message);
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+    }
+  }
+
   // seperate chatrooms and public rooms also finds the active chat name to display in the UI
   const directAndGroupChats = conversations.filter((conv) => !conv.isPublicRoom);
   const publicRooms = conversations.filter((conv) => conv.isPublicRoom);
   const activeConversation = conversations.find((conv) => conv._id === activeId);
   const activeChatName = activeConversation?.groupName || (activeId ? 'Direct Message' : 'None');
+
+  // added message timestamp formatting function
+  const formatMessageTime = (timestamp) => {
+    if (!timestamp) return '';
+
+    // parsing the timestamp
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return '';
+
+    //grabbing the current time
+    const now = new Date();
+    const isToday = now.toDateString() === date.toDateString();
+
+    //  show time only if not today.
+    if (isToday) {
+      return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+
+    return date.toLocaleString([], {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  };
 
   if (!inChat) {
     return (
@@ -319,6 +433,7 @@ async function renameChat()
         )}
 
         <div className="sidebar-public-section">
+
           <p className="sidebar-section-title">Public Rooms</p>
           {publicRooms.length === 0 ? (
             <p style={{ fontSize: '12px', color: 'gray' }}>No public rooms</p>
@@ -337,35 +452,80 @@ async function renameChat()
       </div>
 
       <div className="main-content">
+
         <h2>Welcome, {name}</h2>
         <p className="current-chatroom">Current chatroom: <strong>{activeChatName}</strong></p>
 
         {activeId && (
-          <button 
-            onClick={renameChat} 
-            style={{ 
-              padding: '4px 8px', 
-              fontSize: '12px', 
-              backgroundColor: '#6c757d', 
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer' 
-            }}
-          >
-            Rename
-          </button>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+            <button 
+              onClick={renameChat} 
+              style={{ 
+                padding: '4px 8px', 
+                fontSize: '12px', 
+                backgroundColor: '#6c757d', 
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer' 
+              }}
+            >
+              Rename
+            </button>
+
+            {!activeConversation?.isPublicRoom && (
+              <button
+                onClick={handleDeleteGroupChat}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '12px',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Delete Chat
+              </button>
+            )}
+          </div>
         )}
         <div className="messages">
           {!activeId ? (
+            
             <div className="no-chat">Select a conversation to start chatting</div>
           ) : messages.length === 0 ? (
             <div className="no-chat">No messages yet</div>
           ) : (
+            
             messages.map((msg, index) => (
-              <div key={index} className="message">
+              <div key={msg._id || index} className="message">
                 <strong>{msg.senderId?.username || "Unknown"}: </strong>
                 {msg.text}
+                
+                {currentUser?._id && String(msg.senderId?._id) === String(currentUser._id) && (
+                  <button
+                    onClick={() => handleDeleteMessage(msg._id)}
+                    style={{
+                      marginLeft: '8px',
+                      padding: '2px 6px',
+                      fontSize: '11px',
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Delete
+                  </button>
+                )}
+
+                <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+                  {formatMessageTime(msg.createdAt)}
+                </div>
+
               </div>
             ))
           )}

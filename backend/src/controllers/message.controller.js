@@ -278,3 +278,52 @@ export const renameConversation = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
+// deletes a chatgroup
+export const deleteConversation = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const currentUserId = req.user?._id;
+
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found" });
+        }
+
+        const isParticipant = conversation.participants.some(
+            (participantId) => participantId.toString() === currentUserId.toString()
+        );
+
+        await Message.deleteMany({ conversationId });
+        await Conversation.findByIdAndDelete(conversationId);
+
+        const io = req.app.get("io");
+        if (io) {
+            io.to(conversationId).emit("conversation-deleted", { conversationId });
+        }
+
+        return res.status(200).json({ message: "Chat deleted successfully." });
+    } catch (error) {
+        console.error("Internal Error in deleteConversation: ", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+// deletes a message from a conversation only YOU
+export const deleteMessage = async (req, res) => {
+    try {
+        const { conversationId, messageId } = req.params;
+
+        await Message.findByIdAndDelete(messageId);
+
+        const io = req.app.get("io");
+        if (io) {
+            io.to(conversationId).emit("message-deleted", { conversationId, messageId });
+        }
+
+        return res.status(200).json({ message: "Message deleted successfully.", messageId });
+    } catch (error) {
+        console.error("Internal Error in deleteMessage: ", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};

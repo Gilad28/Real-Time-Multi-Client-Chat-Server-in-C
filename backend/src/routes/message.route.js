@@ -6,6 +6,8 @@ import { getConversations } from "../controllers/message.controller.js"
 import { sendMessage } from "../controllers/message.controller.js"
 import { getMessages } from "../controllers/message.controller.js"
 import { renameConversation } from "../controllers/message.controller.js"
+import { deleteConversation } from "../controllers/message.controller.js"
+import { deleteMessage } from "../controllers/message.controller.js"
 
 const router = express.Router();
 
@@ -21,6 +23,10 @@ router.get("/:conversationId/messages", protectRoute, getMessages);
 router.post("/:conversationId/send", protectRoute, sendMessage);
 // renames a conversation
 router.patch("/:conversationId/rename", protectRoute, renameConversation);
+// deletes a chat (DM or private group)
+router.delete("/:conversationId", protectRoute, deleteConversation);
+// deletes a message from a conversation
+router.delete("/:conversationId/messages/:messageId", protectRoute, deleteMessage);
 
 
 export default router;
