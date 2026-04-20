@@ -242,3 +242,39 @@ export const getMessages = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 }
+
+//renames a groupchat
+export const renameConversation = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const { groupName } = req.body;
+        const currentUserId = req.user?._id;
+
+        if (!groupName || !String(groupName).trim()) {
+            return res.status(400).json({ message: "groupName is required" });
+        }
+
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found" });
+        }
+
+        const hasAccess = conversation.isPublicRoom || conversation.participants.some(
+            (participantId) => participantId.toString() === currentUserId.toString()
+        );
+
+        if (!hasAccess) {
+            return res.status(401).json({ message: "Unauthorized to rename this conversation." });
+        }
+
+        conversation.groupName = String(groupName).trim();
+        await conversation.save();
+        await Conversation.findByIdAndUpdate(conversationId, { updatedAt: new Date() });
+
+        const fullConversation = await conversation.populate("participants", "-password");
+        res.status(200).json(fullConversation);
+    } catch (error) {
+        console.error("Internal Error in renameConversation: ", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};

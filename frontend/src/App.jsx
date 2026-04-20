@@ -91,6 +91,39 @@ function App() {
     }
   }, [activeId]);
 
+  //rename chat implementation
+// Add this with your other handle functions
+async function renameChat() 
+{
+  if (!activeId) return;
+
+  const newName = prompt("Enter new group name:");
+  if (!newName) return;
+
+  try {
+    const response = await fetch(`/api/message/${activeId}/rename`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ groupName: newName })
+    });
+
+    if (response.ok) {
+      // Update the local state so you don't have to refresh
+      setConversations(prev => 
+        prev.map(conv => 
+          conv._id === activeId ? { ...conv, groupName: newName } : conv
+        )
+      );
+    } else {
+      const errorData = await response.json();
+      alert(errorData.message || "Failed to rename chat");
+    }
+  } catch (error) {
+    console.error("Error renaming chat:", error);
+  }
+}
+
 
   //starts a new chat
   async function startChat()
@@ -231,9 +264,9 @@ function App() {
 
       
       <div className="sidebar">
-        <h3>Chats</h3>
+        <h3 style={{ color: "#000" }}>Chats</h3>
         <button onClick={startChat} style={{background: '#28a745', color: 'white'}}>
-            + New DM
+            + New Group Chat
         </button>
 
         {directAndGroupChats.length === 0 ? (
@@ -272,33 +305,48 @@ function App() {
         <h2>Welcome, {name}</h2>
         <p className="current-chatroom">Current chatroom: <strong>{activeChatName}</strong></p>
 
-      <div className="messages">
-        {!activeId ? (
-          <div className="no-chat">Select a conversation to start chatting</div>
-        ) : messages.length === 0 ? (
-          <div className="no-chat">No messages yet</div>
-        ) : (
-          messages.map((msg, index) => (
-            <div key={index} className="message">
-              <strong>{msg.senderId?.username || "Unknown"}: </strong>
-              {msg.text}
-            </div>
-          ))
+        {activeId && (
+          <button 
+            onClick={renameChat} 
+            style={{ 
+              padding: '4px 8px', 
+              fontSize: '12px', 
+              backgroundColor: '#6c757d', 
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer' 
+            }}
+          >
+            Rename
+          </button>
         )}
+        <div className="messages">
+          {!activeId ? (
+            <div className="no-chat">Select a conversation to start chatting</div>
+          ) : messages.length === 0 ? (
+            <div className="no-chat">No messages yet</div>
+          ) : (
+            messages.map((msg, index) => (
+              <div key={index} className="message">
+                <strong>{msg.senderId?.username || "Unknown"}: </strong>
+                {msg.text}
+              </div>
+            ))
+          )}
+        </div>
+
+        <form onSubmit={handleSend}>
+          <input
+            type="text"
+            placeholder="Type message"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          
+          <button type="submit">Send</button>
+        </form>
       </div>
-
-      <form onSubmit={handleSend}>
-
-        <input
-          type="text"
-          placeholder="Type message"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        
-        <button type="submit">Send</button>
-      </form>
-    </div>
     </div>
   )
 }

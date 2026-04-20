@@ -5,6 +5,7 @@ import { createGroupChat } from "../controllers/message.controller.js"
 import { getConversations } from "../controllers/message.controller.js"
 import { sendMessage } from "../controllers/message.controller.js"
 import { getMessages } from "../controllers/message.controller.js"
+import { renameConversation } from "../controllers/message.controller.js"
 
 const router = express.Router();
 
@@ -18,6 +19,8 @@ router.post("/groupMessages", protectRoute, createGroupChat);
 router.get("/:conversationId/messages", protectRoute, getMessages);
 // creates and sends a message in a chat
 router.post("/:conversationId/send", protectRoute, sendMessage);
+// renames a conversation
+router.patch("/:conversationId/rename", protectRoute, renameConversation);
 
 
 export default router;
